@@ -64,7 +64,23 @@ function getPrintableDate(timestamp){
         date.getFullYear();
 }
 
-function appendQuestion(questionDocument, isFirst){
+function getPrintableDatetime(timestamp){
+    var date = timestamp.toDate(); // Firestore.Timestamp -> JS.Date
+
+    return (
+        date.getHours() +
+        ':' +
+        ('0' + date.getMinutes()).slice(-2) +
+        ' ' +
+        ('0' + date.getDate()).slice(-2) +
+        '.' +
+        ('0' + date.getMonth()).slice(-2) +
+        '.' +
+        date.getFullYear() 
+        );
+}
+
+function appendQuestion(questionDocument, index){
     //  <div class="row">
     //      <div class="col-1 text-center text-wrap">0<br>votes</div>
     //      <div class="col-1 text-center text-wrap">1<br>answers</div>
@@ -80,7 +96,7 @@ function appendQuestion(questionDocument, isFirst){
     //  </div>
     //  <div class="row border-top mt-3 mb-3">
     //  </div>
-    
+
     const questionsElement = document.getElementById('questions');
     const question = new Question(questionDocument.id, questionDocument.data().votes, 
         questionDocument.data().answers, questionDocument.data().views, 
@@ -90,15 +106,8 @@ function appendQuestion(questionDocument, isFirst){
     var userReference = firestore.collection('users').doc(question.askedBy);
     userReference.get().then(function(userDocument){
         if(userDocument.exists){
-            if(!isFirst){
-                let rowDiv = document.createElement('div');
-                rowDiv.setAttribute('class', 'row border-top mt-3 mb-3');
-                questionsElement.appendChild(rowDiv);
-            }
-
             let rowDiv = document.createElement('div');
             rowDiv.setAttribute('class', 'row');
-            questionsElement.appendChild(rowDiv);
 
             let votesDiv = document.createElement('div');
             votesDiv.setAttribute('class', 'col-1 text-center text-wrap');
@@ -127,10 +136,12 @@ function appendQuestion(questionDocument, isFirst){
 
             let timeByDiv = document.createElement('div');
             timeByDiv.setAttribute('class', 'row justify-content-end');
-            timeByDiv.innerHTML = "asked " + getPrintableDate(question.askedTime) + 
+            timeByDiv.innerHTML = "asked " + getPrintableDatetime(question.askedTime) + 
                 " by&nbsp;<a href='user.html?id=" + userDocument.id + "'>" + 
                 userDocument.data().name + "</a>";
             titleTimeByDiv.appendChild(timeByDiv);
+
+            questionsElement.childNodes[index].replaceWith(rowDiv);
         }
     }).catch(function(error) {
         console.log("Error getting document:", error);
@@ -144,11 +155,20 @@ function loadQuestions(searchText){
             const questionsElement = document.getElementById('questions');
             questionsElement.innerHTML = "";
 
-            var isFirst = true;
+            querySnapshot.forEach(function(doc){
+                var lineDivElement = document.createElement('div');
+                lineDivElement.setAttribute('class', 'row border-top mt-3 mb-3');
+                questionsElement.appendChild(lineDivElement);
+
+                var divElement = document.createElement('div');
+                divElement.setAttribute('class', 'row');
+                questionsElement.appendChild(divElement);
+            });
+
+            let index = 1;
             querySnapshot.forEach(function (doc) {
-                appendQuestion(doc, isFirst);
-                if(isFirst)
-                    isFirst = false;
+                appendQuestion(doc, index);
+                index = index + 2;
             });
         });
     } else {
@@ -215,7 +235,6 @@ function loginRegister(){
                 name: userRecord.name,
             }, { merge: true })
             .then(function() {
-                console.log("Document successfully written!");
                 location.reload();
             })
             .catch(function(error) {
@@ -247,9 +266,9 @@ function setLoginRegisterButton(){
     const loginRegisterButtonElement = document.getElementById('loginRegisterButton');
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
-            loginRegisterButtonElement.innerHTML = `<button type="button" class="btn btn-primary mt-1" onclick="logout();">Logout</button>`;
+            loginRegisterButtonElement.innerHTML = `<button type="button" class="btn btn-primary mt-1 mb-2" onclick="logout();">Logout</button>`;
         } else {
-            loginRegisterButtonElement.innerHTML = `<button type="button" class="btn btn-primary mt-1" onclick="loginRegister();">Login or Register</button>`;
+            loginRegisterButtonElement.innerHTML = `<button type="button" class="btn btn-primary mt-1 mb-2" onclick="loginRegister();">Login or Register</button>`;
         }
     });
 }
@@ -259,7 +278,7 @@ function ask(){
         if (user) {
             location.href = "ask.html";
         } else {
-            loginRegister();
+            alert("You have to be logged in to ask a question.");
         }
     });
 }
@@ -276,6 +295,7 @@ function submitQuestion(content){
             let questionTitle = question.title.toLowerCase();
             questionTitle = questionTitle.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
             titleArray = questionTitle.split(' ');
+            // todo make 1, 2, 3... letter splits
 
             let contentArray = new Array();
             let questionContent = question.content.toLowerCase();
@@ -300,6 +320,8 @@ function submitQuestion(content){
             .catch(function(error) {
                 console.error("Error writing document: ", error);
             });
+        } else {
+            alert("You have to be logged in to submit a question.");
         }
     });
 }
@@ -322,7 +344,7 @@ function loadQuestion(){
                     const commentsElement = document.getElementById('comments');    
 
                     titleElement.innerHTML = doc.data().title;
-                    askedTimeByElement.innerHTML = "Asked " + getPrintableDate(doc.data().askedTime) +
+                    askedTimeByElement.innerHTML = "Asked " + getPrintableDatetime(doc.data().askedTime) +
                         " by <a href='user.html?id=" + doc.data().askedBy + "'>" + 
                         userDoc.data().name + "</a> " + 
                         doc.data().votes + " votes " +
@@ -331,7 +353,8 @@ function loadQuestion(){
                     votesElement.innerHTML = doc.data().votes;
                     contentElement.innerHTML = doc.data().content;
 
-                    questionDocRef.collection('comments').orderBy('time', 'desc').limit(50)
+                    questionDocRef.collection('comments').orderBy('votes', 'desc')
+                        .orderBy('time', 'asc')
                         .get().then(function (commentsSnapshot) {
                             var isFirst = true;
                             commentsSnapshot.forEach(function (doc) {
@@ -340,6 +363,8 @@ function loadQuestion(){
                                     isFirst = false;
                             });
                         });
+
+                    document.cookie = questionId;
                 } else {
                     location.href = "index.html";
                 }
@@ -375,47 +400,65 @@ function appendComment(commentDocument, isFirst){
     var userReference = firestore.collection('users').doc(commentDocument.data().userId);
     userReference.get().then(function(userDocument){
         if(userDocument.exists){
-            let rowDiv = document.createElement('div');
-            if(!isFirst)
-                rowDiv.setAttribute('class', 'row border-top mt-3 mb-3');
-            else
-                rowDiv.setAttribute('class', 'row');
-            commentsElement.appendChild(rowDiv);
-
-            return;
-            let votesDiv = document.createElement('div');
-            votesDiv.setAttribute('class', 'col-1 text-center text-wrap');
-            votesDiv.innerHTML = question.votes + "<br>votes";
-            rowDiv.appendChild(votesDiv);
-
-            let answersDiv = document.createElement('div');
-            answersDiv.setAttribute('class', 'col-1 text-center text-wrap');
-            answersDiv.innerHTML = question.answers + "<br>answers";
-            rowDiv.appendChild(answersDiv);
-
-            let viewsDiv = document.createElement('div');
-            viewsDiv.setAttribute('class', 'col-1 text-center text-wrap');
-            viewsDiv.innerHTML = question.views + "<br>views";
-            rowDiv.appendChild(viewsDiv);
-
-            let titleTimeByDiv = document.createElement('div');
-            titleTimeByDiv.setAttribute('class', 'col-9');
-            rowDiv.appendChild(titleTimeByDiv);
-
-            let titleDiv = document.createElement('div');
-            titleDiv.setAttribute('class', 'row');
-            titleDiv.innerHTML = "<a href='question.html?id=" + question.id + "'>" + 
-                question.title + "</a>";
-            titleTimeByDiv.appendChild(titleDiv);
-
-            let timeByDiv = document.createElement('div');
-            timeByDiv.setAttribute('class', 'row justify-content-end');
-            timeByDiv.innerHTML = "asked " + getPrintableDate(question.askedTime) + 
-                " by&nbsp;<a href='user.html?id=" + userDocument.id + "'>" + 
-                userDocument.data().name + "</a>";
-            titleTimeByDiv.appendChild(timeByDiv);
+            commentsElement.innerHTML = commentsElement.innerHTML +
+                "<div class='row border-top mt-3 mb-3'>" +
+                "</div>" +
+                "<div class='row'>" +
+                "    <div class='col-1'>" +
+                "        <div class='row justify-content-center'>" +
+                "        <a href='#'><img src='images/upvote_gray.png' onclick='upvoteComment(" + commentDocument + ");' /></a>" +
+                "        </div>" +
+                "        <div id='votes' class='row justify-content-center mt-2 mb-2'>" +
+                commentDocument.data().votes +
+                "        </div>" +
+                "        <div class='row justify-content-center'>" +
+                "        <a href='#'><img src='images/downvote_gray.png' onclick='downvote(Comment(" + commentDocument + ");' /></a>" +
+                "        </div>" +
+                "    </div>" +
+                "    <div id='content' class='col justify-content-between'>" +
+                "        <div class='row ml-1'>" +
+                commentDocument.data().content +
+                "        </div>" +
+                "        <div class='row mr-1 justify-content-end'>" +
+                userDocument.data().name + " " + getPrintableDatetime(commentDocument.data().time)+ 
+                "        </div>" +
+                "    </div>" +
+                "</div>";
         }
     }).catch(function(error) {
         console.log("Error getting document:", error);
     });
+}
+
+function submitComment(comment){
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            const questionId = document.cookie;
+            const commentObject = new Comment(0, questionId, user.uid, 0, comment, "");
+
+            firestore.collection('questions').doc(questionId).collection('comments').add({
+                questionId: commentObject.questionId,
+                userId: commentObject.userId,
+                votes: commentObject.votes,
+                content: commentObject.content,
+                time: firebase.firestore.FieldValue.serverTimestamp(),
+            })
+            .then(function(questionReference) {
+                location.reload();
+            })
+            .catch(function(error) {
+                console.error("Error writing document: ", error);
+            });
+        } else {
+            alert("You have to be logged in to comment.");
+        }
+    });
+}
+
+function vote(questionDocument, isUpvote){
+    
+}
+
+function voteComment(commentDocument, isUpvote){
+
 }
