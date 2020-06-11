@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <!-- General page settings -->
     <title>Stonk Overflow - Where CSoft Developers Learn, Share, & Build Careers</title>
+    <link rel="icon" type="image/png" href="images/icon.png">
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/7.14.4/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.14.4/firebase-firestore.js"></script>
@@ -30,7 +31,7 @@
               <h2>Ask question</h2>
             </div>
             <div class="col justify-content-center">
-              <form class="form-inline justify-content-end" onsubmit="return search();">
+              <form class="form-inline justify-content-end">
                 <a href="index.html"><button type="button" class="btn btn-primary mt-1 mr-1 mb-2">Home</button></a>
                 <div id="loginRegisterButton"></div>
               </div>
@@ -48,7 +49,8 @@
           </div>
           <div class="row">
             <div class="col">
-              <button type="button" class="btn btn-primary" onclick="submitQuestion(simplemde.value());">Submit question</button>
+              <button id="submitButton" type="button" class="btn btn-primary" onclick="submitQuestion(simplemde.value());">Submit question</button>
+              <a id="errorText" class="ml-2 text-danger"></a>
             </div>
           </div>
         </div>
@@ -67,7 +69,7 @@
     <script src="node_modules\simplemde\dist\simplemde.min.js"></script>
     <script>setLoginRegisterButton();</script>
     <script>
-      var simplemde = new SimpleMDE({ element: document.getElementById("content") });
+      var simplemde = new SimpleMDE({ element: document.getElementById("content"), spellChecker: false, placeholder: "Content" });
     </script>
   </body>
 </html>

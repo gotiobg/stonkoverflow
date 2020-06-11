@@ -5,7 +5,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <!-- General page settings -->
-    <title>Stonkoverflow</title>
+    <title>Stonk Overflow - Where CSoft Developers Learn, Share, & Build Careers</title>
+    <link rel="icon" type="image/png" href="images/icon.png">
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/7.14.4/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.14.4/firebase-firestore.js"></script>
@@ -14,9 +15,9 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
       integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
-      <!-- SimpleMKE -->
-      <link rel="stylesheet" href="node_modules\simplemde\dist\simplemde.min.css" />
-      <!-- Custom CSS -->
+    <!-- SimpleMKE -->
+    <link rel="stylesheet" href="node_modules\simplemde\dist\simplemde.min.css" />
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="./styles/main.css" />
   </head>
   <body>
@@ -44,12 +45,12 @@
           <div class="row">
             <div class="col-1">
               <div class="row justify-content-center">
-                <a href="#"><img src="images/upvote_gray.png" onclick="upvote();" /></a>
+                <a href="#voteQuestion"><img id="upvote" src="images/upvote_gray.png" onclick="vote(true);" /></a>
               </div>
               <div id="votes" class="row justify-content-center mt-2 mb-2">
               </div>
               <div class="row justify-content-center">
-                <a href="#"><img src="images/downvote_gray.png" onclick="downvote();" /></a>
+                <a href="#voteQuestion"><img id="downvote" src="images/downvote_gray.png" onclick="vote(false);" /></a>
               </div>
             </div>
             <div id="content" class="col">
@@ -62,7 +63,8 @@
           <div class="row mt-2">
             <div class="col mb-4">
               <textarea id="answer"></textarea>
-              <button type="button" class="btn btn-primary" onclick="submitComment(simplemde.value());">Submit comment</button>
+              <button id="submitButton" type="button" class="btn btn-primary" onclick="submitComment(answerMDE.value());">Submit comment</button>
+              <a id="errorText" class="ml-2 text-danger"></a>
             </div>
           </div>
         </div>
@@ -82,7 +84,7 @@
     <script src="node_modules\simplemde\dist\simplemde.min.js"></script>
     <script>
       loadQuestion(); setLoginRegisterButton();
-      var simplemde = new SimpleMDE({ element: document.getElementById("answer") });
+      var answerMDE = new SimpleMDE({ element: document.getElementById("answer"), spellChecker: false, });
     </script>
   </body>
 </html>

@@ -13,6 +13,7 @@ var firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 firebase.analytics();
+// firebase.firestore().settings({ experimentalForceLongPolling: true });
 const firestore = firebase.firestore();
 
 var provider = new firebase.auth.GoogleAuthProvider();
@@ -201,11 +202,20 @@ function loadQuestions(searchText){
                                 searchResults.push(contentDoc);
                         });
 
-                        var isFirst = true;
+                        searchResults.forEach(function(doc){
+                            var lineDivElement = document.createElement('div');
+                            lineDivElement.setAttribute('class', 'row border-top mt-3 mb-3');
+                            questionsElement.appendChild(lineDivElement);
+            
+                            var divElement = document.createElement('div');
+                            divElement.setAttribute('class', 'row');
+                            questionsElement.appendChild(divElement);
+                        });
+            
+                        let index = 1;
                         searchResults.forEach(function (doc) {
-                            appendQuestion(doc, isFirst);
-                            if(isFirst)
-                                isFirst = false;
+                            appendQuestion(doc, index);
+                            index = index + 2;
                         });
                     });
             });
@@ -284,7 +294,32 @@ function ask(){
 }
 
 function submitQuestion(content){
+    const submitButtonElement = document.getElementById("submitButton");
+    const errorTextElement = document.getElementById("errorText");
+    submitButtonElement.classList.add("disabled");
+    submitButtonElement.setAttribute("disabled", true);
+
     const titleElement = document.getElementById('title');
+
+    // Validations
+    let errorText = "";
+
+    if(titleElement.value.length < 15)
+        errorText += "Title must be " + ( 15 - titleElement.value.length ) + " more symbol(s).";
+
+    if(content.length < 100){
+        if(errorText.length > 0)
+            errorText += "\n";
+        errorText += "Content must be " + ( 100 - content.length ) + " more symbol(s).";
+    }
+
+    if(errorText.length > 0){
+        // alert(errorText);
+        errorTextElement.innerHTML = errorText;
+        submitButtonElement.classList.remove("disabled");
+        submitButtonElement.removeAttribute("disabled");
+        return;
+    }
 
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
@@ -336,35 +371,67 @@ function loadQuestion(){
     questionDocRef.get().then(function (doc) {
         if (doc.exists) {
             firestore.collection('users').doc(doc.data().askedBy).get().then(function (userDoc) {
-                if (doc.exists) {
+                if (userDoc.exists) {
                     const titleElement = document.getElementById('title');  
                     const askedTimeByElement = document.getElementById('askedTimeBy');    
                     const votesElement = document.getElementById('votes');    
-                    const contentElement = document.getElementById('content');    
-                    const commentsElement = document.getElementById('comments');    
+                    const contentElement = document.getElementById('content');
+                    contentElement.innerHTML = "<textarea id='questionContent'></textarea>"; 
 
                     titleElement.innerHTML = doc.data().title;
                     askedTimeByElement.innerHTML = "Asked " + getPrintableDatetime(doc.data().askedTime) +
                         " by <a href='user.html?id=" + doc.data().askedBy + "'>" + 
                         userDoc.data().name + "</a> " + 
                         doc.data().votes + " votes " +
-                        doc.data().views + " views " +
+                        ( parseInt(doc.data().views) + 1 ) + " views " +
                         doc.data().answers + " answers ";
                     votesElement.innerHTML = doc.data().votes;
-                    contentElement.innerHTML = doc.data().content;
+                    let contentMDE = new SimpleMDEPreview({ 
+                        element: document.getElementById("questionContent"),
+                        initialValue: doc.data().content,
+                        // toolbar: false,
+                        spellChecker: false,
+                    });   
+                    contentMDE.togglePreview();
 
                     questionDocRef.collection('comments').orderBy('votes', 'desc')
                         .orderBy('time', 'asc')
                         .get().then(function (commentsSnapshot) {
-                            var isFirst = true;
                             commentsSnapshot.forEach(function (doc) {
-                                appendComment(doc, isFirst);
-                                if(isFirst)
-                                    isFirst = false;
+                                appendComment(doc);
                             });
                         });
 
                     document.cookie = questionId;
+
+                    // Increase view count
+                    firestore.collection("questions").doc(questionId).set({
+                        views: parseInt(doc.data().views) + 1,
+                    }, { merge: true })
+                    .catch(function(error) {
+                        console.error("Error increasing view count: ", error);
+                    });
+
+                    // Changing arrow colors
+
+                    firestore.collection('questions').doc(questionId).collection('votes').doc(userDoc.id)
+                        .get().then(function(questionUserVoteDocument) {
+                            if(questionUserVoteDocument.exists){
+                                const upvoteElement = document.getElementById('upvote');
+                                const downvoteElement = document.getElementById('downvote');
+            
+                                if(questionUserVoteDocument.data().vote == 1){
+                                    upvoteElement.setAttribute('src', 'images/upvote_orange.png');
+                                    downvoteElement.setAttribute('src', 'images/downvote_gray.png');
+                                } else if(questionUserVoteDocument.data().vote == 0){
+                                    upvoteElement.setAttribute('src', 'images/upvote_gray.png');
+                                    downvoteElement.setAttribute('src', 'images/downvote_gray.png');
+                                } else if(questionUserVoteDocument.data().vote == -1){
+                                    upvoteElement.setAttribute('src', 'images/upvote_gray.png');
+                                    downvoteElement.setAttribute('src', 'images/downvote_orange.png');
+                                }
+                            }
+                        });
                 } else {
                     location.href = "index.html";
                 }
@@ -375,55 +442,55 @@ function loadQuestion(){
     });
 }
 
-function appendComment(commentDocument, isFirst){
-    // <div class="row">
-    //     <div class="col-1">
-    //         <div class="row justify-content-center">
-    //         <a href="#"><img src="images/upvote_gray.png" onclick="upvote();" /></a>
-    //         </div>
-    //         <div id="votes" class="row justify-content-center mt-2 mb-2">
-    //         </div>
-    //         <div class="row justify-content-center">
-    //         <a href="#"><img src="images/downvote_gray.png" onclick="downvote();" /></a>
-    //         </div>
-    //     </div>
-    //     <div id="content" class="col">
-    //         <div class="row">
-    //         </div>
-    //         <div class="row">
-    //         </div>
-    //     </div>
-    // </div>
-    
+function appendComment(commentDocument){
     const commentsElement = document.getElementById('comments');
 
     var userReference = firestore.collection('users').doc(commentDocument.data().userId);
     userReference.get().then(function(userDocument){
         if(userDocument.exists){
+            const commentId = "comment" + commentDocument.id;
+
             commentsElement.innerHTML = commentsElement.innerHTML +
                 "<div class='row border-top mt-3 mb-3'>" +
                 "</div>" +
                 "<div class='row'>" +
                 "    <div class='col-1'>" +
                 "        <div class='row justify-content-center'>" +
-                "        <a href='#'><img src='images/upvote_gray.png' onclick='upvoteComment(" + commentDocument + ");' /></a>" +
+                "        <a href='#voteComment'><img id='upvote" + commentDocument.id + "' src='images/upvote_gray.png' onclick='voteComment(\"" + commentDocument.id + "\", true);' /></a>" +
                 "        </div>" +
-                "        <div id='votes' class='row justify-content-center mt-2 mb-2'>" +
+                "        <div id='votes" + commentDocument.id + "' class='row justify-content-center mt-2 mb-2'>" +
                 commentDocument.data().votes +
                 "        </div>" +
                 "        <div class='row justify-content-center'>" +
-                "        <a href='#'><img src='images/downvote_gray.png' onclick='downvote(Comment(" + commentDocument + ");' /></a>" +
+                "        <a href='#voteComment'><img id='downvote" + commentDocument.id + "' src='images/downvote_gray.png' onclick='voteComment(\"" + commentDocument.id + "\", false);' /></a>" +
                 "        </div>" +
                 "    </div>" +
-                "    <div id='content' class='col justify-content-between'>" +
+                "    <div id='content' class='col-11 justify-content-between'>" +
                 "        <div class='row ml-1'>" +
-                commentDocument.data().content +
+                "           <div class='col'>" +
+                "               <textarea id='" + commentId + "'></textarea>" +
+                "           </div>" +
                 "        </div>" +
-                "        <div class='row mr-1 justify-content-end'>" +
-                userDocument.data().name + " " + getPrintableDatetime(commentDocument.data().time)+ 
+                "        <div class='row mr-1'>" +
+                "           <div class='col text-right'>" +
+                "               <a href='user.html?id=" + commentDocument.data().userId + "'>" + userDocument.data().name + "</a>&nbsp;" + 
+                getPrintableDatetime(commentDocument.data().time) + 
+                "           </div>" +
                 "        </div>" +
                 "    </div>" +
                 "</div>";
+
+                setTimeout(function(){
+                    let simpleMDE = new SimpleMDEPreview({ 
+                        element: document.getElementById(commentId),
+                        initialValue: commentDocument.data().content,
+                        toolbar: false,
+                        spellChecker: false,
+                        status: false,
+                        lineWrapping: false,
+                    });
+                    simpleMDE.togglePreview();
+                }, 100);
         }
     }).catch(function(error) {
         console.log("Error getting document:", error);
@@ -431,23 +498,54 @@ function appendComment(commentDocument, isFirst){
 }
 
 function submitComment(comment){
+    const submitButtonElement = document.getElementById("submitButton");
+    const errorTextElement = document.getElementById("errorText");
+    submitButtonElement.classList.add("disabled");
+    submitButtonElement.setAttribute("disabled", false);
+
+    // Validations
+    let errorText = "";
+    if(comment.length < 50){
+        errorText = "Comment must be " + ( 50 - comment.length ) + " more symbol(s).";
+    }
+
+    if(errorText.length > 0){
+        errorTextElement.innerHTML = errorText;
+        submitButtonElement.classList.remove("disabled");
+        submitButtonElement.removeAttribute("disabled");
+        return;
+    }
+
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
             const questionId = document.cookie;
             const commentObject = new Comment(0, questionId, user.uid, 0, comment, "");
 
-            firestore.collection('questions').doc(questionId).collection('comments').add({
-                questionId: commentObject.questionId,
-                userId: commentObject.userId,
-                votes: commentObject.votes,
-                content: commentObject.content,
-                time: firebase.firestore.FieldValue.serverTimestamp(),
-            })
-            .then(function(questionReference) {
-                location.reload();
-            })
-            .catch(function(error) {
-                console.error("Error writing document: ", error);
+            firestore.collection('questions').doc(questionId).get().then(function (doc) {
+                if (doc.exists) {
+                    firestore.collection("questions").doc(questionId).set({
+                        answers: parseInt(doc.data().answers) + 1,
+                    }, { merge: true })
+                    .catch(function(error) {
+                        console.error("Error increasing comment count: ", error);
+                    });
+
+                    // todo last action
+
+                    firestore.collection('questions').doc(questionId).collection('comments').add({
+                        questionId: commentObject.questionId,
+                        userId: commentObject.userId,
+                        votes: commentObject.votes,
+                        content: commentObject.content,
+                        time: firebase.firestore.FieldValue.serverTimestamp(),
+                    })
+                    .then(function(questionReference) {
+                        location.reload();
+                    })
+                    .catch(function(error) {
+                        console.error("Error writing document: ", error);
+                    });
+                }
             });
         } else {
             alert("You have to be logged in to comment.");
@@ -455,10 +553,192 @@ function submitComment(comment){
     });
 }
 
-function vote(questionDocument, isUpvote){
-    
+function vote(isUpvote){
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            const questionId = document.cookie;
+            firestore.collection('questions').doc(questionId).collection('votes').doc(user.uid)
+                .get().then(function(doc) {
+                    let newVote = 0;
+                    let newVoteQuestion = 0;
+
+                    if (doc.exists) {
+                        if(isUpvote && doc.data().vote == 1) {
+                            newVote = 0;
+                            newVoteQuestion = -1;
+                        } else if(isUpvote && doc.data().vote == 0) {
+                            newVote = 1;
+                            newVoteQuestion = 1;
+                        } else if(isUpvote && doc.data().vote == -1) {
+                            newVote = 1;
+                            newVoteQuestion = 2;
+                        } else if(!isUpvote && doc.data().vote == 1){
+                            newVote = -1;
+                            newVoteQuestion = -2;
+                        } else if(!isUpvote && doc.data().vote == 0){
+                            newVote = -1;
+                            newVoteQuestion = -1;
+                        } else if(!isUpvote && doc.data().vote == -1){
+                            newVote = 0;
+                            newVoteQuestion = 1;
+                        }
+                    } else {
+                        newVote = isUpvote ? 1 : -1
+                        newVoteQuestion = isUpvote ? 1 : -1;
+                    }
+
+                    // Changes user vote for question
+                    firestore.collection("questions").doc(questionId).collection('votes').doc(user.uid).set({
+                        vote: newVote,
+                    })
+                    .catch(function(error) {
+                        console.error("Error voting for question: ", error);
+                    });
+
+                    // Changes question votes
+                    firestore.collection("questions").doc(questionId)
+                        .get().then(function(questionDocument) {
+                            const newVotes = parseInt(questionDocument.data().votes) + newVoteQuestion;
+                            if (questionDocument.exists){
+                                firestore.collection("questions").doc(questionId).set({
+                                    votes: newVotes,
+                                }, { merge: true })
+                                .catch(function(error) {
+                                    console.error("Error voting for question: ", error);
+                                });
+
+                                const votesElement = document.getElementById('votes');
+                                votesElement.innerHTML = newVotes;
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error("Error voting for question: ", error);
+                        });
+
+                    // Changing arrow colors
+                    const upvoteElement = document.getElementById('upvote');
+                    const downvoteElement = document.getElementById('downvote');
+
+                    if(newVote == 1){
+                        upvoteElement.setAttribute('src', 'images/upvote_orange.png');
+                        downvoteElement.setAttribute('src', 'images/downvote_gray.png');
+                    } else if(newVote == 0){
+                        upvoteElement.setAttribute('src', 'images/upvote_gray.png');
+                        downvoteElement.setAttribute('src', 'images/downvote_gray.png');
+                    } else if(newVote == -1){
+                        upvoteElement.setAttribute('src', 'images/upvote_gray.png');
+                        downvoteElement.setAttribute('src', 'images/downvote_orange.png');
+                    }
+            });
+        } else {
+            alert("You have to be logged in to comment.");
+        }
+    });
 }
 
-function voteComment(commentDocument, isUpvote){
+function voteComment(commentDocumentId, isUpvote){
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user){
+            const questionId = document.cookie;
 
+            firestore.collection('questions').doc(questionId)
+                .collection('comments').doc(commentDocumentId)
+                .collection('votes').doc(user.uid)
+                .get().then(function(doc) {
+                    let newVote = 0;
+                    let newVoteComment = 0;
+
+                    if (doc.exists) {
+                        if(isUpvote && doc.data().vote == 1) {
+                            newVote = 0;
+                            newVoteComment = -1;
+                        } else if(isUpvote && doc.data().vote == 0) {
+                            newVote = 1;
+                            newVoteComment = 1;
+                        } else if(isUpvote && doc.data().vote == -1) {
+                            newVote = 1;
+                            newVoteComment = 2;
+                        } else if(!isUpvote && doc.data().vote == 1){
+                            newVote = -1;
+                            newVoteComment = -2;
+                        } else if(!isUpvote && doc.data().vote == 0){
+                            newVote = -1;
+                            newVoteComment = -1;
+                        } else if(!isUpvote && doc.data().vote == -1){
+                            newVote = 0;
+                            newVoteComment = 1;
+                        }
+                    } else {
+                        newVote = isUpvote ? 1 : -1
+                        newVoteComment = isUpvote ? 1 : -1;
+                    }
+
+                    // Changes user vote for comment
+                    firestore.collection('questions').doc(questionId)
+                        .collection('comments').doc(commentDocumentId)
+                        .collection('votes').doc(user.uid)
+                        .set({
+                        vote: newVote,
+                    })
+                    .catch(function(error) {
+                        console.error("Error voting for question: ", error);
+                    });
+
+                    // Changes question votes
+                    firestore.collection('questions').doc(questionId)
+                        .collection('comments').doc(commentDocumentId)
+                        .get().then(function(commentDocument) {
+                            const newVotes = parseInt(commentDocument.data().votes) + newVoteComment;
+                            if (commentDocument.exists){
+                                firestore.collection("questions").doc(questionId)
+                                    .collection('comments').doc(commentDocumentId)
+                                    .set({
+                                    votes: newVotes,
+                                }, { merge: true })
+                                .catch(function(error) {
+                                    console.error("Error voting for question: ", error);
+                                });
+
+                                const votesElement = document.getElementById('votes' + commentDocumentId);
+                                votesElement.innerHTML = newVotes;
+                            }
+                        })
+                        .catch(function(error) {
+                            console.error("Error voting for question: ", error);
+                        });
+
+                    // Changing arrow colors
+                    const upvoteElement = document.getElementById('upvote' + commentDocumentId);
+                    const downvoteElement = document.getElementById('downvote' + commentDocumentId);
+
+                    if(newVote == 1){
+                        upvoteElement.setAttribute('src', 'images/upvote_orange.png');
+                        downvoteElement.setAttribute('src', 'images/downvote_gray.png');
+                    } else if(newVote == 0){
+                        upvoteElement.setAttribute('src', 'images/upvote_gray.png');
+                        downvoteElement.setAttribute('src', 'images/downvote_gray.png');
+                    } else if(newVote == -1){
+                        upvoteElement.setAttribute('src', 'images/upvote_gray.png');
+                        downvoteElement.setAttribute('src', 'images/downvote_orange.png');
+                    }
+            });
+        } else {
+            alert("You have to be logged in to comment.");
+        }
+    });
+}
+
+function loadUser(){
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    if(userId == undefined || userId == null)
+        location.href = "index.html";
+
+    const userNameElement = document.getElementById('userName');
+
+    firestore.collection('users').doc(userId).get().then(function(userDocument){
+        if(userDocument.exists){
+            userNameElement.innerHTML = userDocument.data().name;
+        }
+    });
 }

@@ -15,6 +15,8 @@
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
       integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
+    <!-- SimpleMKE -->
+    <link rel="stylesheet" href="node_modules\simplemde\dist\simplemde.min.css" />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="./styles/main.css" />
     <script src="./scripts/main.js">
@@ -25,18 +27,18 @@
       <div class="row justify-content-center">
         <div class="col">
           <div class="row mt-5 mb-5">
-            <div class="col-4">
-              <h2>Latest questions</h2>
+            <div class="col-8">
+              <h2 id="userName"></h2>
             </div>
             <div class="col justify-content-center">
-              <form class="form-inline justify-content-end" onsubmit="return search();">
-                <a href="#"><img src="images/magnifying-glass.png" width="32px" height="32px" class="mt-1 mr-2 mb-2" onclick="search();" /></a>
-                <input id="searchInput" type="text" class="form-control col mt-1 mr-1 mb-2" placeholder="Search">
-                <button type="button" class="btn btn-primary mt-1 mr-1 mb-2" onclick="ask();">Ask question</button>
+              <form class="form-inline justify-content-end">
+                <a href="index.html"><button type="button" class="btn btn-primary mt-1 mr-1 mb-2">Home</button></a>
                 <div id="loginRegisterButton"></div>
               </div>
           </div>
-          <div id="questions">
+          <div class="row">
+          </div>
+          <div class="row mt-2">
           </div>
         </div>
       </div>
@@ -51,6 +53,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
       integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous">
     </script>
-    <script>loadQuestions(); setLoginRegisterButton();</script>
+    <script src="node_modules\simplemde\dist\simplemde.min.js"></script>
+    <script>loadUser(); setLoginRegisterButton();</script>
   </body>
 </html>
