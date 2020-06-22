@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <!-- General page settings -->
-    <title>Stonk Overflow - Where CSoft Developers Learn, Share, & Build Careers</title>
+    <title>CSoft Stack Overflow</title>
     <link rel="icon" type="image/png" href="images/icon.png">
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/7.14.4/firebase-app.js"></script>
@@ -13,9 +13,11 @@
     <script src="https://www.gstatic.com/firebasejs/7.14.4/firebase-analytics.js"></script>
     <script src="https://www.gstatic.com/firebasejs/7.14.6/firebase-auth.js"></script>
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
-    <!-- SimpleMKE -->
+    <link rel="stylesheet" 
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" 
+      crossorigin="anonymous" />
+    <!-- SimpleMDE -->
     <link rel="stylesheet" href="node_modules\simplemde\dist\simplemde.min.css" />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="./styles/main.css" />
@@ -35,8 +37,14 @@
               </div>
             </div>
             <div class="col-4 text-right">
-              <a href="index.html"><button type="button" class="btn btn-primary mt-1">Home</button></a>
-              <button type="button" class="btn btn-primary mt-1" onclick="ask();">Ask question</button>
+              <a href="index.html">
+                <button type="button" class="btn btn-primary mt-1">
+                  Home
+                </button>
+              </a>
+              <button type="button" class="btn btn-primary mt-1" onclick="ask();">
+                Ask question
+              </button>
               <div id="loginRegisterButton"></div>
             </div>
           </div>
@@ -45,15 +53,19 @@
           <div class="row">
             <div class="col-1">
               <div class="row justify-content-center">
-                <a href="#voteQuestion"><img id="upvote" src="images/upvote_gray.png" onclick="vote(true);" /></a>
+                <a href="#voteQuestion"><img id="upvote" src="images/upvote_gray.png" 
+                  onclick="vote(true);" />
+                </a>
               </div>
               <div id="votes" class="row justify-content-center mt-2 mb-2">
               </div>
               <div class="row justify-content-center">
-                <a href="#voteQuestion"><img id="downvote" src="images/downvote_gray.png" onclick="vote(false);" /></a>
+                <a href="#voteQuestion"><img id="downvote" src="images/downvote_gray.png" 
+                  onclick="vote(false);" />
+                </a>
               </div>
             </div>
-            <div id="content" class="col">
+            <div id="content" class="col-11">
             </div>
           </div>
           <div id="comments">
@@ -63,7 +75,10 @@
           <div class="row mt-2">
             <div class="col mb-4">
               <textarea id="answer"></textarea>
-              <button id="submitButton" type="button" class="btn btn-primary" onclick="submitComment(answerMDE.value());">Submit comment</button>
+              <button id="submitButton" type="button" class="btn btn-primary" 
+                onclick="submitComment(answerMDE.value());">
+                Submit comment
+              </button>
               <a id="errorText" class="ml-2 text-danger"></a>
             </div>
           </div>
@@ -72,18 +87,22 @@
     </div>
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" 
-      integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous">
+      integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" 
+      crossorigin="anonymous">
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-      integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous">
+      integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" 
+      crossorigin="anonymous">
     </script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
-      integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous">
+      integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" 
+      crossorigin="anonymous">
     </script>
-    <script src="./scripts/main.js"></script>
     <script src="node_modules\simplemde\dist\simplemde.min.js"></script>
+    <script src="./scripts/main.js"></script>
     <script>
-      loadQuestion(); setLoginRegisterButton();
+      loadQuestion(); 
+      setLoginRegisterButton();
       var answerMDE = new SimpleMDE({ element: document.getElementById("answer"), spellChecker: false, });
     </script>
   </body>

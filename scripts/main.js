@@ -152,26 +152,26 @@ function appendQuestion(questionDocument, index){
 function loadQuestions(searchText){
     if(searchText == undefined || searchText == ""){
         firestore.collection('questions').orderBy('askedTime', 'desc').limit(50)
-        .get().then(function (querySnapshot) {
-            const questionsElement = document.getElementById('questions');
-            questionsElement.innerHTML = "";
+            .get().then(function (querySnapshot) {
+                const questionsElement = document.getElementById('questions');
+                questionsElement.innerHTML = "";
 
-            querySnapshot.forEach(function(doc){
-                var lineDivElement = document.createElement('div');
-                lineDivElement.setAttribute('class', 'row border-top mt-3 mb-3');
-                questionsElement.appendChild(lineDivElement);
+                querySnapshot.forEach(function(doc){
+                    var lineDivElement = document.createElement('div');
+                    lineDivElement.setAttribute('class', 'row border-top mt-3 mb-3');
+                    questionsElement.appendChild(lineDivElement);
 
-                var divElement = document.createElement('div');
-                divElement.setAttribute('class', 'row');
-                questionsElement.appendChild(divElement);
+                    var divElement = document.createElement('div');
+                    divElement.setAttribute('class', 'row');
+                    questionsElement.appendChild(divElement);
+                });
+
+                let index = 1;
+                querySnapshot.forEach(function (doc) {
+                    appendQuestion(doc, index);
+                    index = index + 2;
+                });
             });
-
-            let index = 1;
-            querySnapshot.forEach(function (doc) {
-                appendQuestion(doc, index);
-                index = index + 2;
-            });
-        });
     } else {
         searchText = searchText.toLowerCase();
 
@@ -232,35 +232,37 @@ function search(){
 }
 
 function loginRegister(){
-    firebase.auth().signInWithPopup(provider).then(function(result) {
-            // This gives you a Google Access Token. You can use it to access the Google API.
-            var token = result.credential.accessToken;
-            // The signed-in user info.
-            var user = result.user;
-            // ...
+    location.href = "sign_in.html";
 
-            let userRecord = new User(user.uid, user.displayName, 0);
+    // firebase.auth().signInWithPopup(provider).then(function(result) {
+    //         // This gives you a Google Access Token. You can use it to access the Google API.
+    //         var token = result.credential.accessToken;
+    //         // The signed-in user info.
+    //         var user = result.user;
+    //         // ...
+
+    //         let userRecord = new User(user.uid, user.displayName, 0);
             
-            firestore.collection("users").doc(userRecord.id).set({
-                name: userRecord.name,
-            }, { merge: true })
-            .then(function() {
-                location.reload();
-            })
-            .catch(function(error) {
-                console.error("Error writing document: ", error);
-            });
-        }).catch(function(error) {
-            // Handle Errors here.
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            // The email of the user's account used.
-            var email = error.email;
-            // The firebase.auth.AuthCredential type that was used.
-            var credential = error.credential;
-            // ...
-            console.log(error)
-        });
+    //         firestore.collection("users").doc(userRecord.id).set({
+    //             name: userRecord.name,
+    //         }, { merge: true })
+    //         .then(function() {
+    //             location.reload();
+    //         })
+    //         .catch(function(error) {
+    //             console.error("Error writing document: ", error);
+    //         });
+    //     }).catch(function(error) {
+    //         // Handle Errors here.
+    //         var errorCode = error.code;
+    //         var errorMessage = error.message;
+    //         // The email of the user's account used.
+    //         var email = error.email;
+    //         // The firebase.auth.AuthCredential type that was used.
+    //         var credential = error.credential;
+    //         // ...
+    //         console.log(error)
+    //     });
 }
 
 function logout(){
@@ -276,9 +278,9 @@ function setLoginRegisterButton(){
     const loginRegisterButtonElement = document.getElementById('loginRegisterButton');
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
-            loginRegisterButtonElement.innerHTML = `<button type="button" class="btn btn-primary mt-1 mb-2" onclick="logout();">Logout</button>`;
+            loginRegisterButtonElement.innerHTML = `<button type="button" class="btn btn-primary mt-1 mb-2" onclick="logout();">Sign out</button>`;
         } else {
-            loginRegisterButtonElement.innerHTML = `<button type="button" class="btn btn-primary mt-1 mb-2" onclick="loginRegister();">Login or Register</button>`;
+            loginRegisterButtonElement.innerHTML = `<button type="button" class="btn btn-primary mt-1 mb-2" onclick="loginRegister();">Sign in</button>`;
         }
     });
 }
@@ -402,7 +404,7 @@ function loadQuestion(){
                         .orderBy('time', 'asc')
                         .get().then(function (commentsSnapshot) {
                             commentsSnapshot.forEach(function (doc) {
-                                appendComment(doc);
+                                appendComment(questionId, doc);
                             });
                         });
 
@@ -446,14 +448,13 @@ function loadQuestion(){
     });
 }
 
-function appendComment(commentDocument){
+function appendComment(questionId, commentDocument){
     const commentsElement = document.getElementById('comments');
 
     var userReference = firestore.collection('users').doc(commentDocument.data().userId);
     userReference.get().then(function(userDocument){
         if(userDocument.exists){
             const commentId = "comment" + commentDocument.id;
-
             commentsElement.innerHTML = commentsElement.innerHTML +
                 "<div class='row border-top mt-3 mb-3'>" +
                 "</div>" +
@@ -470,12 +471,12 @@ function appendComment(commentDocument){
                 "        </div>" +
                 "    </div>" +
                 "    <div id='content' class='col-11 justify-content-between'>" +
-                "        <div class='row ml-1'>" +
+                "        <div class='row'>" +
                 "           <div class='col'>" +
                 "               <textarea id='" + commentId + "'></textarea>" +
                 "           </div>" +
                 "        </div>" +
-                "        <div class='row mr-1'>" +
+                "        <div class='row'>" +
                 "           <div class='col text-right'>" +
                 "               <a href='user.html?id=" + commentDocument.data().userId + "'>" + userDocument.data().name + "</a>&nbsp;" + 
                 getPrintableDatetime(commentDocument.data().time) + 
@@ -495,6 +496,27 @@ function appendComment(commentDocument){
                     });
                     simpleMDE.togglePreview();
                 }, 100);
+
+                firestore.collection('questions').doc(questionId)
+                    .collection('comments').doc(commentDocument.id)
+                    .collection('votes').doc(userDocument.id)
+                    .get().then(function(questionCommentVoteDocument) {
+                        if(questionCommentVoteDocument.exists){
+                            const upvoteElement = document.getElementById('upvote' + commentDocument.id);
+                            const downvoteElement = document.getElementById('downvote' + commentDocument.id);
+        
+                            if(questionCommentVoteDocument.data().vote == 1){
+                                upvoteElement.setAttribute('src', 'images/upvote_orange.png');
+                                downvoteElement.setAttribute('src', 'images/downvote_gray.png');
+                            } else if(questionCommentVoteDocument.data().vote == 0){
+                                upvoteElement.setAttribute('src', 'images/upvote_gray.png');
+                                downvoteElement.setAttribute('src', 'images/downvote_gray.png');
+                            } else if(questionCommentVoteDocument.data().vote == -1){
+                                upvoteElement.setAttribute('src', 'images/upvote_gray.png');
+                                downvoteElement.setAttribute('src', 'images/downvote_orange.png');
+                            }
+                        }
+                    });
         }
     }).catch(function(error) {
         console.log("Error getting document:", error);
@@ -558,6 +580,16 @@ function submitComment(comment){
 }
 
 function vote(isUpvote){
+    if(isUpvote){
+        const upvoteElement = document.getElementById("upvote");
+        upvoteElement.setAttribute("onclick", "");
+        setTimeout(function() { enableVote(isUpvote); }, 1000);
+    } else {
+        const downvoteElement = document.getElementById("downvote");
+        downvoteElement.setAttribute("onclick", "");
+        setTimeout(function() { enableVote(isUpvote); }, 1000);
+    }
+
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
             const questionId = document.cookie;
@@ -641,6 +673,16 @@ function vote(isUpvote){
 }
 
 function voteComment(commentDocumentId, isUpvote){
+    if(isUpvote){
+        const upvoteElement = document.getElementById("upvote" + commentDocumentId);
+        upvoteElement.setAttribute("onclick", "");
+        setTimeout(function() { enableVoteComment(commentDocumentId, isUpvote); }, 1000);
+    } else {
+        const downvoteElement = document.getElementById("downvote" + commentDocumentId);
+        downvoteElement.setAttribute("onclick", "");
+        setTimeout(function() { enableVoteComment(commentDocumentId, isUpvote); }, 1000);
+    }
+
     firebase.auth().onAuthStateChanged(function(user) {
         if (user){
             const questionId = document.cookie;
@@ -758,3 +800,83 @@ function getAllSubstrings(str) {
     return result;
 }
   
+function enableVote(isUpvote){
+    if(isUpvote){
+        const upvoteElement = document.getElementById("upvote");
+        upvoteElement.setAttribute("onclick", "vote(true)");
+    } else {
+        const downvoteElement = document.getElementById("downvote");
+        downvoteElement.setAttribute("onclick", "vote(false)");
+    }
+}
+
+function enableVoteComment(commentDocumentId, isUpvote){
+    if(isUpvote){
+        const upvoteElement = document.getElementById("upvote" + commentDocumentId);
+        upvoteElement.setAttribute("onclick", "voteComment('" + commentDocumentId +"', true)");
+    } else {
+        const downvoteElement = document.getElementById("downvote" + commentDocumentId);
+        downvoteElement.setAttribute("onclick", "voteComment('" + commentDocumentId + "', false)");
+    }
+}
+
+function redirectIfSignedIn(){
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            location.href = "index.html";
+        }
+    });
+}
+
+function loadSignIn(){
+    var uiConfig = {
+        callbacks: {
+            signInSuccessWithAuthResult: function(authResult, redirectUrl) {
+                // console.log(JSON.stringify(authResult.user));
+                firestore.collection("users").doc(authResult.user.uid).set({
+                    name: authResult.user.displayName,
+                }, { merge: true })
+                .then(function() {
+                    console.log("signInSuccessWithAuthResult 2");
+                    location.reload();
+                })
+                .catch(function(error) {
+                    console.error("Error writing document: ", error);
+                });
+
+                redirectUrl = "#";
+
+                return false;
+            },
+            uiShown: function() {
+                // The widget is rendered.
+                // Hide the loader.
+                // document.getElementById('loader').style.display = 'none';
+            }
+        },
+        // Will use popup for IDP Providers sign-in flow instead of the default, redirect.
+        signInFlow: 'popup',
+        signInSuccessUrl: 'index.html',
+        signInOptions: [
+          // Leave the lines as is for the providers you want to offer your users.
+          firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+        //   firebase.auth.FacebookAuthProvider.PROVIDER_ID,
+        //   firebase.auth.TwitterAuthProvider.PROVIDER_ID,
+        //   firebase.auth.GithubAuthProvider.PROVIDER_ID,
+          {
+              provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
+              requireDisplayName: false
+          },
+        //   firebase.auth.PhoneAuthProvider.PROVIDER_ID
+        ],
+        // Terms of service url.
+        tosUrl: '<your-tos-url>',
+        // Privacy policy url.
+        privacyPolicyUrl: '<your-privacy-policy-url>'
+      };
+    
+    // Initialize the FirebaseUI Widget using Firebase.
+    var ui = new firebaseui.auth.AuthUI(firebase.auth());
+    
+    ui.start('#firebaseui-auth-container', uiConfig);
+}
